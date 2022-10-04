@@ -1,23 +1,25 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-contract SharedWallet{
+import "./Allowance.sol";
 
-    address public owner;
+contract SharedWallet is Allowance{
 
-    constructor(){
-       owner = msg.sender;
-    }
+    event MoneySent(address indexed _beneficiary, uint _amt);
+    event MoneyRecieved(address indexed _from, uint _amt);
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "You are not the owner");
-        _;
-    }
-
-    function withdrawMoney(address payable _to, uint _amount) public {
+    function withdrawMoney(address payable _to, uint _amount) public ownerOrAllowed(_amount){
+        require(_amount <= address(this).balance, "Not Enough Funds in Smart Contract");
+        if(owner()!=msg.sender){
+            reduceAllowance(_to, _amount);
+        }
         _to.transfer(_amount);
+        emit MoneySent(_to, _amount);
     } 
-    function receiveEther() external payable {
 
-    }
+    
+
+    function receiveEth() external payable {
+        emit MoneyRecieved(msg.sender, msg.value);
+    } 
 }
